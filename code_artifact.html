@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ソートアルゴリズム学習ラボ - 高校情報Ⅰ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Sans JP, JetBrains Mono) -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .font-code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* バーのトランジション */
+        .bar-transition {
+            transition: height 0.25s ease-in-out, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .code-line-active {
+            background-color: rgba(99, 102, 241, 0.3);
+            border-left: 4px solid #818cf8;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        /* ピボットアニメーション効果 */
+        .pivot-glow {
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.6);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+    <!-- ヘッダー ＆ アルゴリズム切り替えタブ -->
+    <header class="bg-slate-900/95 backdrop-blur border-b border-slate-800 sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-layer-group text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg sm:text-xl leading-tight bg-gradient-to-r from-white via-slate-200 to-indigo-200 bg-clip-text text-transparent">
+                        ソートアルゴリズム学習ラボ
+                    </h1>
+                    <p class="text-xs text-slate-400">高校情報Ⅰ アルゴリズムとプログラミング (Python対応)</p>
+                </div>
+            </div>
+
+            <!-- アルゴリズム選択タブ -->
+            <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 w-full md:w-auto overflow-x-auto">
+                <button id="tab-bubble" onclick="switchAlgorithm('bubble')" class="flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 whitespace-nowrap bg-indigo-600 text-white shadow">
+                    <i class="fa-solid fa-soap text-indigo-200"></i>
+                    <span>バブルソート</span>
+                </button>
+                <button id="tab-selection" onclick="switchAlgorithm('selection')" class="flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 whitespace-nowrap text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-hand-pointer"></i>
+                    <span>選択ソート</span>
+                </button>
+                <button id="tab-insertion" onclick="switchAlgorithm('insertion')" class="flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 whitespace-nowrap text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>挿入ソート</span>
+                </button>
+                <button id="tab-quick" onclick="switchAlgorithm('quick')" class="flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 whitespace-nowrap text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-bolt text-amber-400"></i>
+                    <span>クイックソート</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+        
+        <!-- 左側・中央: 設定・描画キャンバス・操作パネル (8/12) -->
+        <div class="lg:col-span-8 flex flex-col gap-5">
+            
+            <!-- 1. 入力・設定フォーム -->
+            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 shadow-lg flex flex-col gap-3">
+                <div class="flex items-center justify-between border-b border-slate-700/60 pb-2">
+                    <h2 class="font-bold text-xs uppercase tracking-wider text-indigo-300 flex items-center">
+                        <i class="fa-solid fa-sliders mr-2"></i>データ入力・プリセット
+                    </h2>
+                    <span class="text-[11px] text-slate-400">※ 要素数: 3〜12個（数値: 1〜99）</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                    <!-- 数値直接入力 -->
+                    <div class="md:col-span-6 flex flex-col gap-1">
+                        <label for="custom-input" class="text-xs font-medium text-slate-300 flex justify-between">
+                            <span>配列の直接入力 <span class="text-slate-400 font-normal">(カンマ/スペース区切り)</span></span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="custom-input" placeholder="例: 64, 34, 25, 12, 22, 11, 90" 
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none pr-16 font-code">
+                            <button id="btn-apply-custom" class="absolute right-1 top-1 bottom-1 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition">
+                                反映
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- プリセット選択 -->
+                    <div class="md:col-span-3 flex flex-col gap-1">
+                        <label for="select-preset" class="text-xs font-medium text-slate-300">データ傾向</label>
+                        <select id="select-preset" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="random" selected>🎲 ランダム</option>
+                            <option value="worst">⚠️ 逆順 (最悪ケース)</option>
+                            <option value="best">✅ 整列済み (最良ケース)</option>
+                            <option value="nearly">接近（ほぼ整列）</option>
+                        </select>
+                    </div>
+
+                    <!-- 再生成ボタン -->
+                    <div class="md:col-span-3 flex gap-2">
+                        <button id="btn-generate-random" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold rounded-xl transition flex items-center justify-center">
+                            <i class="fa-solid fa-shuffle mr-1.5"></i>再生成
+                        </button>
+                    </div>
+                </div>
+
+                <!-- エラーメッセージ用 -->
+                <div id="input-error" class="hidden text-xs text-rose-400 bg-rose-950/50 border border-rose-800/60 rounded-lg p-2 flex items-center">
+                    <i class="fa-solid fa-triangle-exclamation mr-2 text-rose-400"></i>
+                    <span id="error-text">エラーが発生しました</span>
+                </div>
+            </div>
+
+            <!-- 2. アルゴリズム特徴バッジ & ステータス -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-slate-800/60 backdrop-blur rounded-xl p-3 border border-slate-700/60">
+                    <div class="text-[11px] text-slate-400 font-medium mb-0.5">平均計算量</div>
+                    <div class="text-base sm:text-lg font-black font-code text-indigo-400" id="stat-complexity">O(n²)</div>
+                </div>
+                <div class="bg-slate-800/60 backdrop-blur rounded-xl p-3 border border-slate-700/60">
+                    <div class="text-[11px] text-slate-400 font-medium mb-0.5">アルゴリズム分類</div>
+                    <div class="text-xs sm:text-sm font-bold text-slate-200 mt-1" id="stat-category">交換法</div>
+                </div>
+                <div class="bg-slate-800/60 backdrop-blur rounded-xl p-3 border border-slate-700/60">
+                    <div class="text-[11px] text-slate-400 font-medium mb-0.5">比較回数</div>
+                    <div class="text-lg sm:text-xl font-black font-code text-cyan-400" id="stat-comparisons">0</div>
+                </div>
+                <div class="bg-slate-800/60 backdrop-blur rounded-xl p-3 border border-slate-700/60">
+                    <div class="text-[11px] text-slate-400 font-medium mb-0.5">交換 / 移動回数</div>
+                    <div class="text-lg sm:text-xl font-black font-code text-rose-400" id="stat-swaps">0</div>
+                </div>
+            </div>
+
+            <!-- 3. 配列視覚化キャンバスエリア -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 sm:p-6 flex flex-col justify-between min-h-[350px] sm:min-h-[390px] relative overflow-hidden shadow-inner">
+                
+                <!-- キャンバス上部凡例 -->
+                <div class="flex flex-wrap justify-between items-center gap-2 mb-2 z-10">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                        <span id="canvas-title" class="text-xs font-bold uppercase tracking-wider text-indigo-300">バブルソート 視覚化キャンバス</span>
+                    </div>
+                    
+                    <!-- カラー凡例 (動的更新) -->
+                    <div id="color-legend" class="text-[11px] text-slate-400 flex flex-wrap items-center gap-2.5">
+                        <!-- JSでアルゴリズム毎に表示更新 -->
+                    </div>
+                </div>
+
+                <!-- バー描画エリア -->
+                <div id="array-container" class="flex-grow flex items-end justify-center gap-2 sm:gap-3 px-2 py-4 relative z-10">
+                    <!-- JavaScriptで動的生成 -->
+                </div>
+
+                <!-- クイックソート等用 パーティション範囲インジケーター -->
+                <div id="range-indicator" class="absolute bottom-10 left-0 right-0 h-1 bg-indigo-500/30 rounded hidden"></div>
+
+                <!-- 完了メッセージオーバーレイ -->
+                <div id="completion-overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-20 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500">
+                    <div class="w-14 h-14 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-2xl mb-3 border border-emerald-500/40">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-white mb-1">ソート完了！</h2>
+                    <p id="completion-summary" class="text-slate-300 text-xs max-w-md text-center px-4 mb-4">
+                        昇順（小さい順）に並び替えが完了しました。
+                    </p>
+                    <button id="overlay-reset-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg transition">
+                        <i class="fa-solid fa-rotate-right mr-1.5"></i>もう一度実行
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4. 再生・再生速度コントロールパネル -->
+            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-lg">
+                <div class="flex items-center space-x-2 w-full sm:w-auto justify-center">
+                    <button id="btn-reset-step" title="最初に戻る" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl font-medium text-xs flex items-center transition active:scale-95">
+                        <i class="fa-solid fa-rotate-left mr-1"></i>最初から
+                    </button>
+                    
+                    <button id="btn-prev" title="1ステップ戻る" class="px-3.5 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 text-slate-200 rounded-xl font-medium text-xs flex items-center transition active:scale-95">
+                        <i class="fa-solid fa-backward-step mr-1"></i>戻る
+                    </button>
+
+                    <button id="btn-play" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs flex items-center shadow-lg shadow-indigo-600/30 transition active:scale-95">
+                        <i class="fa-solid fa-play mr-2" id="play-icon"></i><span id="play-text">自動再生</span>
+                    </button>
+
+                    <button id="btn-next" title="1ステップ進む" class="px-3.5 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 text-slate-200 rounded-xl font-medium text-xs flex items-center transition active:scale-95">
+                        次へ<i class="fa-solid fa-forward-step ml-1"></i>
+                    </button>
+                </div>
+
+                <!-- スピード調整 -->
+                <div class="flex items-center space-x-3 w-full sm:w-auto justify-center">
+                    <span class="text-xs font-medium text-slate-400">速度:</span>
+                    <input type="range" id="speed-range" min="1" max="5" value="3" class="w-28 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                    <span id="speed-label" class="text-xs font-mono text-slate-300 w-10">標準</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 右側: 擬似コード・変数状態・動作解説 (4/12) -->
+        <div class="lg:col-span-4 flex flex-col gap-5">
+            
+            <!-- 擬似コード (Python準拠) 表示 -->
+            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 shadow-lg flex flex-col gap-2.5">
+                <div class="flex items-center justify-between border-b border-slate-700/60 pb-2">
+                    <h3 class="font-bold text-xs uppercase tracking-wider text-indigo-300 flex items-center">
+                        <i class="fa-brands fa-python mr-2 text-indigo-400"></i>プログラム（Python表記）
+                    </h3>
+                    <span class="text-[10px] text-slate-400 font-mono">情報Ⅰ 標準準拠</span>
+                </div>
+
+                <div id="code-container" class="bg-slate-950 rounded-xl p-3 text-xs font-code text-slate-300 leading-relaxed border border-slate-800 overflow-x-auto">
+                    <!-- アルゴリズムごとに動的差し替え -->
+                </div>
+            </div>
+
+            <!-- リアルタイム変数モニター -->
+            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 shadow-lg flex flex-col gap-2.5">
+                <div class="flex items-center justify-between border-b border-slate-700/60 pb-2">
+                    <h3 class="font-bold text-slate-200 flex items-center text-xs uppercase tracking-wider">
+                        <i class="fa-solid fa-microchip text-cyan-400 mr-2"></i>変数・ポインタモニター
+                    </h3>
+                    <span class="text-[10px] text-slate-400">リアルタイム推移</span>
+                </div>
+
+                <div id="variable-monitor" class="grid grid-cols-2 gap-2 text-xs font-code">
+                    <!-- 動的生成 -->
+                </div>
+            </div>
+
+            <!-- 解説・ポインターカード -->
+            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 shadow-lg flex flex-col gap-3">
+                <div class="flex items-center justify-between border-b border-slate-700/60 pb-2">
+                    <h3 class="font-bold text-slate-200 flex items-center text-xs uppercase tracking-wider">
+                        <i class="fa-solid fa-chalkboard-user text-amber-400 mr-2"></i>動作の解説
+                    </h3>
+                    <span id="action-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-700 text-slate-300">
+                        待機中
+                    </span>
+                </div>
+
+                <!-- 解説メッセージ -->
+                <div id="explanation-text" class="text-xs text-slate-300 leading-relaxed min-h-[64px] flex items-center">
+                    アルゴリズムを選択して「自動再生」または「次へ」を押してください。
+                </div>
+
+                <!-- アルゴリズム特徴ワンポイント -->
+                <div class="bg-indigo-950/40 border border-indigo-800/50 rounded-xl p-3 text-xs text-indigo-200 flex items-start space-x-2">
+                    <i class="fa-solid fa-lightbulb text-amber-400 text-sm mt-0.5 flex-shrink-0"></i>
+                    <div id="tip-text" class="leading-normal">
+                        ポインタや比較の挙動に注目しましょう。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 実行ログ -->
+            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 shadow-lg flex flex-col flex-grow min-h-[140px] max-h-[190px]">
+                <div class="flex items-center justify-between mb-1.5">
+                    <h3 class="font-bold text-slate-200 text-xs uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-list-ul text-slate-400 mr-1.5"></i>実行トレースログ
+                    </h3>
+                    <button id="btn-clear-log" class="text-[10px] text-slate-400 hover:text-slate-200 transition">クリア</button>
+                </div>
+                
+                <div id="log-container" class="flex-grow overflow-y-auto pr-1 space-y-1 text-[11px] font-code">
+                    <div class="text-slate-500 italic text-center py-2">実行履歴が記録されます</div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- フッター -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-2.5 text-center text-xs text-slate-500">
+        高校情報Ⅰ「アルゴリズムとプログラミング」対話型ソート学習システム
+    </footer>
+
+    <!-- JavaScript ロジック -->
+    <script>
+        // --- 定数・定義 ---
+        let currentAlgo = 'bubble'; // 'bubble' | 'selection' | 'insertion' | 'quick'
+        let currentArray = [];
+        let history = [];
+        let currentStepIndex = 0;
+        let isPlaying = false;
+        let timerId = null;
+
+        let speed = 3;
+        const speedMap = { 1: 1300, 2: 800, 3: 450, 4: 200, 5: 80 };
+        const speedLabels = { 1: '低速', 2: 'やや遅い', 3: '標準', 4: '高速', 5: '超高速' };
+
+        // 各アルゴリズムの情報定義
+        const ALGO_CONFIG = {
+            bubble: {
+                name: 'バブルソート (Bubble Sort)',
+                complexity: 'O(n²)',
+                category: '交換法',
+                codeLines: [
+                    "for i in range(n-1, 0, -1):",
+                    "    for j in range(0, i):",
+                    "        if a[j] > a[j+1]:",
+                    "            temp = a[j]",
+                    "            a[j] = a[j+1]",
+                    "            a[j+1] = temp"
+                ],
+                legend: [
+                    { color: 'bg-slate-700', label: '未確定' },
+                    { color: 'bg-amber-400', label: '比較 (j, j+1)' },
+                    { color: 'bg-rose-500', label: '交換中' },
+                    { color: 'bg-emerald-500', label: '確定済み' }
+                ]
+            },
+            selection: {
+                name: '選択ソート (Selection Sort)',
+                complexity: 'O(n²)',
+                category: '選択法',
+                codeLines: [
+                    "for i in range(0, n-1):",
+                    "    min_idx = i",
+                    "    for j in range(i+1, n):",
+                    "        if a[j] < a[min_idx]:",
+                    "            min_idx = j",
+                    "    a[i], a[min_idx] = a[min_idx], a[i]"
+                ],
+                legend: [
+                    { color: 'bg-slate-700', label: '未確定' },
+                    { color: 'bg-sky-400', label: '探索位置 j' },
+                    { color: 'bg-orange-500', label: '最小値 min_idx' },
+                    { color: 'bg-rose-500', label: '交換 (i ↔ min)' },
+                    { color: 'bg-emerald-500', label: '確定済み' }
+                ]
+            },
+            insertion: {
+                name: '挿入ソート (Insertion Sort)',
+                complexity: 'O(n²)',
+                category: '挿入法',
+                codeLines: [
+                    "for i in range(1, n):",
+                    "    temp = a[i]",
+                    "    j = i - 1",
+                    "    while j >= 0 and a[j] > temp:",
+                    "        a[j + 1] = a[j]",
+                    "        j -= 1",
+                    "    a[j + 1] = temp"
+                ],
+                legend: [
+                    { color: 'bg-emerald-700/60', label: '整列済み部' },
+                    { color: 'bg-orange-500', label: '挿入対象 temp' },
+                    { color: 'bg-amber-400', label: '比較中 j' },
+                    { color: 'bg-rose-500', label: '右シフト' },
+                    { color: 'bg-emerald-500', label: '全確定' }
+                ]
+            },
+            quick: {
+                name: 'クイックソート (Quick Sort)',
+                complexity: 'O(n log n)',
+                category: '分割統治法',
+                codeLines: [
+                    "def quick_sort(a, left, right):",
+                    "    pivot = a[(left + right) // 2]",
+                    "    i, j = left, right",
+                    "    while i <= j:",
+                    "        while a[i] < pivot: i += 1",
+                    "        while a[j] > pivot: j -= 1",
+                    "        if i <= j:",
+                    "            a[i], a[j] = a[j], a[i]; i += 1; j -= 1",
+                    "    # 再帰的に左右の区間をソート"
+                ],
+                legend: [
+                    { color: 'bg-slate-700', label: '未確定' },
+                    { color: 'bg-purple-500', label: 'ピボット(基準)' },
+                    { color: 'bg-cyan-400', label: '左走査 i' },
+                    { color: 'bg-amber-400', label: '右走査 j' },
+                    { color: 'bg-rose-500', label: '交換 (i ↔ j)' },
+                    { color: 'bg-emerald-500', label: '確定済み' }
+                ]
+            }
+        };
+
+        // DOM参照
+        const customInput = document.getElementById('custom-input');
+        const btnApplyCustom = document.getElementById('btn-apply-custom');
+        const selectPreset = document.getElementById('select-preset');
+        const btnGenerateRandom = document.getElementById('btn-generate-random');
+        const inputError = document.getElementById('input-error');
+        const errorText = document.getElementById('error-text');
+
+        const statComplexity = document.getElementById('stat-complexity');
+        const statCategory = document.getElementById('stat-category');
+        const statComparisons = document.getElementById('stat-comparisons');
+        const statSwaps = document.getElementById('stat-swaps');
+
+        const canvasTitle = document.getElementById('canvas-title');
+        const colorLegend = document.getElementById('color-legend');
+        const arrayContainer = document.getElementById('array-container');
+        const completionOverlay = document.getElementById('completion-overlay');
+        const completionSummary = document.getElementById('completion-summary');
+
+        const codeContainer = document.getElementById('code-container');
+        const variableMonitor = document.getElementById('variable-monitor');
+        const explanationText = document.getElementById('explanation-text');
+        const actionBadge = document.getElementById('action-badge');
+        const tipText = document.getElementById('tip-text');
+        const logContainer = document.getElementById('log-container');
+
+        const btnPlay = document.getElementById('btn-play');
+        const playIcon = document.getElementById('play-icon');
+        const playText = document.getElementById('play-text');
+        const btnNext = document.getElementById('btn-next');
+        const btnPrev = document.getElementById('btn-prev');
+        const btnResetStep = document.getElementById('btn-reset-step');
+        const speedRange = document.getElementById('speed-range');
+        const speedLabel = document.getElementById('speed-label');
+        const btnClearLog = document.getElementById('btn-clear-log');
+        const overlayResetBtn = document.getElementById('overlay-reset-btn');
+
+        // --- アルゴリズム別 ステップ生成ロジック ---
+
+        // 1. バブルソート (Bubble Sort)
+        function generateBubbleSteps(arr) {
+            const steps = [];
+            let a = [...arr];
+            let n = a.length;
+            let comparisons = 0, swaps = 0;
+            let sorted = new Array(n).fill(false);
+
+            steps.push({
+                array: [...a], comparing: [], swapping: [], sorted: [...sorted],
+                vars: { i: '-', j: '-', temp: '-' },
+                codeLine: 1, comparisons, swaps, actionType: 'init',
+                msg: `バブルソートを開始します。末尾インデックス i を ${n-1} から 1 まで1ずつ減らしながら比較を行います。`,
+                tip: `大きい要素が右へ右へと移動し、右端から確定していきます。`
+            });
+
+            for (let i = n - 1; i > 0; i--) {
+                steps.push({
+                    array: [...a], comparing: [], swapping: [], sorted: [...sorted],
+                    vars: { i: i, j: '-', temp: '-' },
+                    codeLine: 1, comparisons, swaps, actionType: 'pass-start',
+                    msg: `【i = ${i}】末尾 [${i}] を決定するための周回（パス）を開始します。`,
+                    tip: `j は 0 から ${i-1} まで動作します。`
+                });
+
+                for (let j = 0; j < i; j++) {
+                    comparisons++;
+                    let willSwap = a[j] > a[j + 1];
+
+                    steps.push({
+                        array: [...a], comparing: [j, j + 1], swapping: [], sorted: [...sorted],
+                        vars: { i: i, j: j, temp: '-' },
+                        codeLine: 3, comparisons, swaps, actionType: 'compare',
+                        msg: `a[${j}](${a[j]}) と a[${j+1}](${a[j+1]}) を比較。 (${a[j]} ${willSwap ? '>' : '≤'} ${a[j+1]})`,
+                        tip: willSwap ? `a[${j}] の方が大きいため、要素を交換します。` : `順序が正しいため、交換せず進みます。`
+                    });
+
+                    if (willSwap) {
+                        let temp = a[j];
+                        a[j] = a[j + 1];
+                        a[j + 1] = temp;
+                        swaps++;
+
+                        steps.push({
+                            array: [...a], comparing: [], swapping: [j, j + 1], sorted: [...sorted],
+                            vars: { i: i, j: j, temp: temp },
+                            codeLine: 6, comparisons, swaps, actionType: 'swap',
+                            msg: `temp = ${temp} を使って a[${j}] と a[${j+1}] の値を入れ替えました！`,
+                            tip: `大きい方の値が右側に移動しました。`
+                        });
+                    }
+                }
+
+                sorted[i] = true;
+                steps.push({
+                    array: [...a], comparing: [], swapping: [], sorted: [...sorted],
+                    vars: { i: i, j: '-', temp: '-' },
+                    codeLine: 1, comparisons, swaps, actionType: 'fix',
+                    msg: `位置 [${i}] の値（${a[i]}）が確定しました！`,
+                    tip: `位置 ${i} 以降は確定済み（緑色）です。`
+                });
+            }
+            sorted[0] = true;
+
+            steps.push({
+                array: [...a], comparing: [], swapping: [], sorted: new Array(n).fill(true),
+                vars: { i: 0, j: '-', temp: '-' },
+                codeLine: 0, comparisons, swaps, actionType: 'complete',
+                msg: `全要素の並び替えが完了しました！`,
+                tip: `総比較回数: ${comparisons} 回 / 総交換回数: ${swaps} 回`
+            });
+
+            return steps;
+        }
+
+        // 2. 選択ソート (Selection Sort)
+        function generateSelectionSteps(arr) {
+            const steps = [];
+            let a = [...arr];
+            let n = a.length;
+            let comparisons = 0, swaps = 0;
+            let sorted = new Array(n).fill(false);
+
+            steps.push({
+                array: [...a], comparing: [], minIdx: null, swapping: [], sorted: [...sorted],
+                vars: { i: '-', min_idx: '-', j: '-' },
+                codeLine: 1, comparisons, swaps, actionType: 'init',
+                msg: `選択ソートを開始します。未確定領域から最小値のインデックス (min_idx) を探し、左端 (i) と交換します。`,
+                tip: `常に「最小の値を探して左詰めに置く」処理を繰り返します。`
+            });
+
+            for (let i = 0; i < n - 1; i++) {
+                let minIdx = i;
+
+                steps.push({
+                    array: [...a], comparing: [], minIdx: minIdx, swapping: [], sorted: [...sorted],
+                    vars: { i: i, min_idx: minIdx, j: '-' },
+                    codeLine: 2, comparisons, swaps, actionType: 'pass-start',
+                    msg: `【i = ${i}】仮の最小値の位置を min_idx = ${i} (値: ${a[i]}) に設定。`,
+                    tip: `これより右側の要素 (j = ${i+1}〜${n-1}) を探索して、さらに小さな値を探します。`
+                });
+
+                for (let j = i + 1; j < n; j++) {
+                    comparisons++;
+                    let isSmaller = a[j] < a[minIdx];
+
+                    steps.push({
+                        array: [...a], comparing: [j], minIdx: minIdx, swapping: [], sorted: [...sorted],
+                        vars: { i: i, min_idx: minIdx, j: j },
+                        codeLine: 4, comparisons, swaps, actionType: 'compare',
+                        msg: `a[${j}](${a[j]}) と 現在の最小値 a[${minIdx}](${a[minIdx]}) を比較。`,
+                        tip: isSmaller ? `新しい最小値が見つかりました！ min_idx を更新します。` : `現在の最小値の方が小さいため、min_idx はそのままです。`
+                    });
+
+                    if (isSmaller) {
+                        minIdx = j;
+                        steps.push({
+                            array: [...a], comparing: [], minIdx: minIdx, swapping: [], sorted: [...sorted],
+                            vars: { i: i, min_idx: minIdx, j: j },
+                            codeLine: 5, comparisons, swaps, actionType: 'min-update',
+                            msg: `min_idx を ${minIdx} (値: ${a[minIdx]}) に更新しました！`,
+                            tip: `オレンジ色のバーが現在見つかっている最小値です。`
+                        });
+                    }
+                }
+
+                if (i !== minIdx) {
+                    let temp = a[i];
+                    a[i] = a[minIdx];
+                    a[minIdx] = temp;
+                    swaps++;
+
+                    steps.push({
+                        array: [...a], comparing: [], minIdx: null, swapping: [i, minIdx], sorted: [...sorted],
+                        vars: { i: i, min_idx: minIdx, j: '-' },
+                        codeLine: 6, comparisons, swaps, actionType: 'swap',
+                        msg: `位置 [${i}](${a[minIdx]}) と 最小値位置 [${minIdx}](${a[i]}) を交換しました！`,
+                        tip: `最も小さい値が左端 [${i}] に配置されました。`
+                    });
+                } else {
+                    steps.push({
+                        array: [...a], comparing: [], minIdx: minIdx, swapping: [], sorted: [...sorted],
+                        vars: { i: i, min_idx: minIdx, j: '-' },
+                        codeLine: 6, comparisons, swaps, actionType: 'no-swap',
+                        msg: `位置 [${i}] 自身が最小値のため、交換を行いません。`,
+                        tip: `すでに正しい位置にあります。`
+                    });
+                }
+
+                sorted[i] = true;
+                steps.push({
+                    array: [...a], comparing: [], minIdx: null, swapping: [], sorted: [...sorted],
+                    vars: { i: i, min_idx: '-', j: '-' },
+                    codeLine: 1, comparisons, swaps, actionType: 'fix',
+                    msg: `位置 [${i}] の値（${a[i]}）が確定しました。`,
+                    tip: `左側から順に確定していきます。`
+                });
+            }
+
+            sorted[n - 1] = true;
+            steps.push({
+                array: [...a], comparing: [], minIdx: null, swapping: [], sorted: new Array(n).fill(true),
+                vars: { i: n-1, min_idx: '-', j: '-' },
+                codeLine: 0, comparisons, swaps, actionType: 'complete',
+                msg: `選択ソートが完了しました！`,
+                tip: `総比較回数: ${comparisons} 回 / 総交換回数: ${swaps} 回`
+            });
+
+            return steps;
+        }
+
+        // 3. 挿入ソート (Insertion Sort)
+        function generateInsertionSteps(arr) {
+            const steps = [];
+            let a = [...arr];
+            let n = a.length;
+            let comparisons = 0, shifts = 0;
+
+            steps.push({
+                array: [...a], sortedUntil: 0, tempIdx: null, comparing: [], shifting: [],
+                vars: { i: '-', temp: '-', j: '-' },
+                codeLine: 1, comparisons, swaps: shifts, actionType: 'init',
+                msg: `挿入ソートを開始します。先頭 (インデックス0) を整列済みとみなし、i = 1 から順に適切な位置へ「挿入」します。`,
+                tip: `トランプの手札を並べ替えるようなイメージのアルゴリズムです。`
+            });
+
+            for (let i = 1; i < n; i++) {
+                let temp = a[i];
+                let j = i - 1;
+
+                steps.push({
+                    array: [...a], sortedUntil: i - 1, tempIdx: i, tempVal: temp, comparing: [], shifting: [],
+                    vars: { i: i, temp: temp, j: j },
+                    codeLine: 2, comparisons, swaps: shifts, actionType: 'pass-start',
+                    msg: `【i = ${i}】挿入対象として a[${i}] の値 (${temp}) を temp に退避します。`,
+                    tip: `整列済み部分 (0〜${i-1}) の中で ${temp} を入れる正しい位置を右から探します。`
+                });
+
+                let inserted = false;
+                while (j >= 0) {
+                    comparisons++;
+                    let needShift = a[j] > temp;
+
+                    steps.push({
+                        array: [...a], sortedUntil: i - 1, tempIdx: i, tempVal: temp, comparing: [j], shifting: [],
+                        vars: { i: i, temp: temp, j: j },
+                        codeLine: 4, comparisons, swaps: shifts, actionType: 'compare',
+                        msg: `a[${j}](${a[j]}) と 退避した値 temp(${temp}) を比較。 (${a[j]} ${needShift ? '>' : '≤'} ${temp})`,
+                        tip: needShift ? `a[${j}] の方が大きいため、a[${j}] を右へ1つずらします。` : `temp(${temp}) の挿入位置が見つかりました！`
+                    });
+
+                    if (needShift) {
+                        a[j + 1] = a[j];
+                        shifts++;
+
+                        steps.push({
+                            array: [...a], sortedUntil: i - 1, tempIdx: i, tempVal: temp, comparing: [], shifting: [j + 1],
+                            vars: { i: i, temp: temp, j: j },
+                            codeLine: 5, comparisons, swaps: shifts, actionType: 'shift',
+                            msg: `a[${j}] の値 (${a[j]}) を a[${j+1}] へ右シフト移動。`,
+                            tip: `空いたスペースを左へ探していきます。`
+                        });
+                        j--;
+                    } else {
+                        break;
+                    }
+                }
+
+                a[j + 1] = temp;
+                steps.push({
+                    array: [...a], sortedUntil: i, tempIdx: null, comparing: [], insertingIdx: j + 1,
+                    vars: { i: i, temp: temp, j: j },
+                    codeLine: 7, comparisons, swaps: shifts, actionType: 'insert',
+                    msg: `位置 [${j + 1}] に temp (${temp}) を挿入しました！`,
+                    tip: `これでインデックス 0 〜 ${i} までが整列済みになりました。`
+                });
+            }
+
+            steps.push({
+                array: [...a], sortedUntil: n - 1, tempIdx: null, comparing: [],
+                vars: { i: n, temp: '-', j: '-' },
+                codeLine: 0, comparisons, swaps: shifts, actionType: 'complete',
+                msg: `挿入ソートが完了しました！`,
+                tip: `総比較回数: ${comparisons} 回 / 総移動(シフト)回数: ${shifts} 回`
+            });
+
+            return steps;
+        }
+
+        // 4. クイックソート (Quick Sort)
+        function generateQuickSteps(arr) {
+            const steps = [];
+            let a = [...arr];
+            let n = a.length;
+            let comparisons = 0, swaps = 0;
+            let sortedState = new Array(n).fill(false);
+
+            steps.push({
+                array: [...a], pivotIdx: null, iIdx: null, jIdx: null, range: [0, n - 1], swapping: [], sorted: [...sortedState],
+                vars: { left: 0, right: n - 1, pivot: '-', i: '-', j: '-' },
+                codeLine: 1, comparisons, swaps, actionType: 'init',
+                msg: `クイックソートを開始します。基準値（ピボット）を選び、それより小さい値を左、大きい値を右に振り分けます。`,
+                tip: `平均計算量が O(n log n) と極めて高速なアルゴリズムです。`
+            });
+
+            function quickSortRecursive(left, right) {
+                if (left >= right) {
+                    if (left >= 0 && left < n) sortedState[left] = true;
+                    return;
+                }
+
+                let pivotIdx = Math.floor((left + right) / 2);
+                let pivotVal = a[pivotIdx];
+                let i = left;
+                let j = right;
+
+                steps.push({
+                    array: [...a], pivotIdx: pivotIdx, iIdx: i, jIdx: j, range: [left, right], swapping: [], sorted: [...sortedState],
+                    vars: { left: left, right: right, pivot: pivotVal, i: i, j: j },
+                    codeLine: 2, comparisons, swaps, actionType: 'pass-start',
+                    msg: `範囲 [${left}〜${right}] のピボット(基準)として 中央位置 [${pivotIdx}] (値:${pivotVal}) を選択。`,
+                    tip: `左ポインタ i=${i} は基準以上の値を、右ポインタ j=${j} は基準以下の値を探します。`
+                });
+
+                while (i <= j) {
+                    // 左側から pivot 以上の要素を探す
+                    while (i <= right) {
+                        comparisons++;
+                        if (a[i] < pivotVal) {
+                            steps.push({
+                                array: [...a], pivotIdx: pivotIdx, iIdx: i, jIdx: j, range: [left, right], swapping: [], sorted: [...sortedState],
+                                vars: { left: left, right: right, pivot: pivotVal, i: i, j: j },
+                                codeLine: 5, comparisons, swaps, actionType: 'scan-i',
+                                msg: `a[${i}](${a[i]}) < ピボット(${pivotVal}) のため、i を右へ進めます (i:${i} → ${i+1})。`,
+                                tip: `ピボットより小さな値は左側でOKです。`
+                            });
+                            i++;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // 右側から pivot 以下の要素を探す
+                    while (j >= left) {
+                        comparisons++;
+                        if (a[j] > pivotVal) {
+                            steps.push({
+                                array: [...a], pivotIdx: pivotIdx, iIdx: i, jIdx: j, range: [left, right], swapping: [], sorted: [...sortedState],
+                                vars: { left: left, right: right, pivot: pivotVal, i: i, j: j },
+                                codeLine: 6, comparisons, swaps, actionType: 'scan-j',
+                                msg: `a[${j}](${a[j]}) > ピボット(${pivotVal}) のため、j を左へ進めます (j:${j} → ${j-1})。`,
+                                tip: `ピボットより大きな値は右側でOKです。`
+                            });
+                            j--;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if (i <= j) {
+                        steps.push({
+                            array: [...a], pivotIdx: pivotIdx, iIdx: i, jIdx: j, range: [left, right], swapping: [], sorted: [...sortedState],
+                            vars: { left: left, right: right, pivot: pivotVal, i: i, j: j },
+                            codeLine: 7, comparisons, swaps, actionType: 'compare',
+                            msg: `i=${i}(値:${a[i]}) と j=${j}(値:${a[j]}) が交換条件を満たしました。`,
+                            tip: `間違った側にある2つの値を入れ替えます。`
+                        });
+
+                        if (i !== j) {
+                            let temp = a[i];
+                            a[i] = a[j];
+                            a[j] = temp;
+                            swaps++;
+
+                            // ピボット位置が入れ替わった場合の参照更新
+                            if (pivotIdx === i) pivotIdx = j;
+                            else if (pivotIdx === j) pivotIdx = i;
+
+                            steps.push({
+                                array: [...a], pivotIdx: pivotIdx, iIdx: i, jIdx: j, range: [left, right], swapping: [i, j], sorted: [...sortedState],
+                                vars: { left: left, right: right, pivot: pivotVal, i: i, j: j },
+                                codeLine: 8, comparisons, swaps, actionType: 'swap',
+                                msg: `a[${i}] と a[${j}] の値を交換しました！`,
+                                tip: `基準より小さい値が左へ、大きい値が右へ移動しました。`
+                            });
+                        }
+
+                        i++;
+                        j--;
+                    }
+                }
+
+                steps.push({
+                    array: [...a], pivotIdx: null, iIdx: null, jIdx: null, range: [left, right], swapping: [], sorted: [...sortedState],
+                    vars: { left: left, right: right, pivot: pivotVal, i: i, j: j },
+                    codeLine: 9, comparisons, swaps, actionType: 'partition-end',
+                    msg: `分割完了！ 範囲 [${left}〜${right}] は ピボット(${pivotVal}) を境に左右に分けられました。`,
+                    tip: `さらに左右の小グループに対して再帰的に同じ処理を行います。`
+                });
+
+                quickSortRecursive(left, j);
+                quickSortRecursive(i, right);
+            }
+
+            quickSortRecursive(0, n - 1);
+
+            steps.push({
+                array: [...a], pivotIdx: null, iIdx: null, jIdx: null, range: null, swapping: [], sorted: new Array(n).fill(true),
+                vars: { left: '-', right: '-', pivot: '-', i: '-', j: '-' },
+                codeLine: 0, comparisons, swaps, actionType: 'complete',
+                msg: `クイックソートが完了しました！`,
+                tip: `総比較回数: ${comparisons} 回 / 総交換回数: ${swaps} 回`
+            });
+
+            return steps;
+        }
+
+        // --- アルゴリズム切り替えと初期化 ---
+        function switchAlgorithm(algoKey) {
+            currentAlgo = algoKey;
+            
+            // タブスタイル更新
+            ['bubble', 'selection', 'insertion', 'quick'].forEach(key => {
+                const tab = document.getElementById(`tab-${key}`);
+                if (key === algoKey) {
+                    tab.className = "flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 whitespace-nowrap bg-indigo-600 text-white shadow";
+                } else {
+                    tab.className = "flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 whitespace-nowrap text-slate-400 hover:text-slate-200";
+                }
+            });
+
+            // UIテキスト＆情報の更新
+            const cfg = ALGO_CONFIG[algoKey];
+            statComplexity.textContent = cfg.complexity;
+            statCategory.textContent = cfg.category;
+            canvasTitle.textContent = `${cfg.name} 視覚化キャンバス`;
+
+            // 凡例更新
+            colorLegend.innerHTML = '';
+            cfg.legend.forEach(item => {
+                const span = document.createElement('span');
+                span.className = 'flex items-center';
+                span.innerHTML = `<span class="w-2.5 h-2.5 rounded ${item.color} inline-block mr-1"></span>${item.label}`;
+                colorLegend.appendChild(span);
+            });
+
+            // 擬似コード表示更新
+            codeContainer.innerHTML = '';
+            cfg.codeLines.forEach((line, idx) => {
+                const div = document.createElement('div');
+                div.id = `code-line-${idx + 1}`;
+                div.className = "px-2 py-0.5 rounded transition-colors whitespace-pre";
+                div.textContent = line;
+                codeContainer.appendChild(div);
+            });
+
+            // 新しいデータセットで初期化
+            setArrayData(currentArray.length > 0 ? currentArray : [64, 34, 25, 12, 22, 11, 90]);
+        }
+
+        // データの適用・生成
+        function setArrayData(arr) {
+            hideError();
+            currentArray = [...arr];
+            customInput.value = currentArray.join(', ');
+
+            // アルゴリズムごとのステップ生成呼び出し
+            switch (currentAlgo) {
+                case 'bubble': history = generateBubbleSteps(currentArray); break;
+                case 'selection': history = generateSelectionSteps(currentArray); break;
+                case 'insertion': history = generateInsertionSteps(currentArray); break;
+                case 'quick': history = generateQuickSteps(currentArray); break;
+            }
+
+            currentStepIndex = 0;
+            logContainer.innerHTML = '';
+            stopAutoPlay();
+            renderStep(0);
+            addLogEntry(`[${ALGO_CONFIG[currentAlgo].name}] 配列初期化: [${currentArray.join(', ')}]`, 'info');
+        }
+
+        function parseAndApplyCustomInput() {
+            const rawVal = customInput.value.trim();
+            if (!rawVal) {
+                showError("数値が入力されていません。");
+                return;
+            }
+
+            const parts = rawVal.split(/[, \s]+/).filter(p => p.length > 0);
+            const parsedNumbers = [];
+
+            for (let p of parts) {
+                const num = Number(p);
+                if (isNaN(num) || !Number.isInteger(num)) {
+                    showError(`「${p}」は有効な整数ではありません。`);
+                    return;
+                }
+                if (num < 1 || num > 99) {
+                    showError(`数値は 1 ～ 99 の範囲で指定してください (該当: ${num})。`);
+                    return;
+                }
+                parsedNumbers.push(num);
+            }
+
+            if (parsedNumbers.length < 3 || parsedNumbers.length > 12) {
+                showError("要素数は 3個 ～ 12個 の範囲で指定してください。");
+                return;
+            }
+
+            setArrayData(parsedNumbers);
+        }
+
+        function generatePresetArray(type) {
+            let size = 7;
+            let arr = [];
+
+            switch (type) {
+                case 'worst':
+                    arr = [90, 75, 60, 45, 30, 15, 5];
+                    break;
+                case 'best':
+                    arr = [10, 20, 30, 40, 50, 60, 70];
+                    break;
+                case 'nearly':
+                    arr = [12, 24, 35, 48, 40, 62, 75];
+                    break;
+                case 'random':
+                default:
+                    while (arr.length < size) {
+                        let val = Math.floor(Math.random() * 88) + 10;
+                        if (!arr.includes(val)) arr.push(val);
+                    }
+                    break;
+            }
+            setArrayData(arr);
+        }
+
+        function showError(msg) {
+            errorText.textContent = msg;
+            inputError.classList.remove('hidden');
+        }
+
+        function hideError() {
+            inputError.classList.add('hidden');
+        }
+
+        // --- ステップ描画 (メインアニメーション処理) ---
+        function renderStep(index) {
+            const step = history[index];
+            const maxVal = Math.max(...step.array, 99);
+
+            // 1. バー要素の動的描画
+            arrayContainer.innerHTML = '';
+            step.array.forEach((val, i) => {
+                const heightPercent = Math.max((val / maxVal) * 82, 14);
+                
+                let barBg = 'bg-slate-700 border-slate-600 text-slate-200';
+                let badgeBg = 'bg-slate-800 text-slate-300 border-slate-700';
+                let extraEffect = '';
+
+                // アルゴリズムごとの条件分岐色分け
+                if (currentAlgo === 'bubble') {
+                    if (step.sorted && step.sorted[i]) {
+                        barBg = 'bg-gradient-to-t from-emerald-600 to-emerald-400 border-emerald-300 text-white';
+                        badgeBg = 'bg-emerald-950 text-emerald-300 border-emerald-800';
+                    } else if (step.swapping && step.swapping.includes(i)) {
+                        barBg = 'bg-gradient-to-t from-rose-600 to-rose-400 border-rose-200 text-white animate-bounce';
+                        badgeBg = 'bg-rose-950 text-rose-300 border-rose-800';
+                    } else if (step.comparing && step.comparing.includes(i)) {
+                        barBg = 'bg-amber-400 border-amber-200 text-slate-900 font-bold scale-105';
+                        badgeBg = 'bg-amber-950 text-amber-300 border-amber-800';
+                    }
+                } else if (currentAlgo === 'selection') {
+                    if (step.sorted && step.sorted[i]) {
+                        barBg = 'bg-gradient-to-t from-emerald-600 to-emerald-400 border-emerald-300 text-white';
+                        badgeBg = 'bg-emerald-950 text-emerald-300 border-emerald-800';
+                    } else if (step.swapping && step.swapping.includes(i)) {
+                        barBg = 'bg-gradient-to-t from-rose-600 to-rose-400 border-rose-200 text-white animate-bounce';
+                        badgeBg = 'bg-rose-950 text-rose-300 border-rose-800';
+                    } else if (i === step.minIdx) {
+                        barBg = 'bg-gradient-to-t from-orange-600 to-orange-400 border-orange-200 text-white font-bold scale-105';
+                        badgeBg = 'bg-orange-950 text-orange-300 border-orange-800';
+                    } else if (step.comparing && step.comparing.includes(i)) {
+                        barBg = 'bg-sky-400 border-sky-200 text-slate-900 font-bold';
+                        badgeBg = 'bg-sky-950 text-sky-300 border-sky-800';
+                    }
+                } else if (currentAlgo === 'insertion') {
+                    if (step.actionType === 'complete') {
+                        barBg = 'bg-gradient-to-t from-emerald-600 to-emerald-400 border-emerald-300 text-white';
+                        badgeBg = 'bg-emerald-950 text-emerald-300 border-emerald-800';
+                    } else if (i === step.insertingIdx) {
+                        barBg = 'bg-gradient-to-t from-emerald-500 to-teal-300 border-emerald-200 text-slate-900 font-bold scale-105';
+                        badgeBg = 'bg-emerald-950 text-emerald-300 border-emerald-800';
+                    } else if (step.shifting && step.shifting.includes(i)) {
+                        barBg = 'bg-gradient-to-t from-rose-600 to-rose-400 border-rose-200 text-white animate-pulse';
+                        badgeBg = 'bg-rose-950 text-rose-300 border-rose-800';
+                    } else if (i === step.tempIdx) {
+                        barBg = 'bg-gradient-to-t from-orange-500 to-amber-300 border-orange-200 text-slate-900 font-bold';
+                        badgeBg = 'bg-orange-950 text-orange-300 border-orange-800';
+                    } else if (step.comparing && step.comparing.includes(i)) {
+                        barBg = 'bg-amber-400 border-amber-200 text-slate-900 font-bold';
+                        badgeBg = 'bg-amber-950 text-amber-300 border-amber-800';
+                    } else if (i <= step.sortedUntil) {
+                        barBg = 'bg-emerald-800/80 border-emerald-600 text-emerald-100';
+                        badgeBg = 'bg-emerald-950/60 text-emerald-300 border-emerald-800';
+                    }
+                } else if (currentAlgo === 'quick') {
+                    if (step.sorted && step.sorted[i]) {
+                        barBg = 'bg-gradient-to-t from-emerald-600 to-emerald-400 border-emerald-300 text-white';
+                        badgeBg = 'bg-emerald-950 text-emerald-300 border-emerald-800';
+                    } else if (step.swapping && step.swapping.includes(i)) {
+                        barBg = 'bg-gradient-to-t from-rose-600 to-rose-400 border-rose-200 text-white animate-bounce';
+                        badgeBg = 'bg-rose-950 text-rose-300 border-rose-800';
+                    } else if (i === step.pivotIdx) {
+                        barBg = 'bg-gradient-to-t from-purple-600 to-purple-400 border-purple-200 text-white font-bold scale-105 pivot-glow';
+                        badgeBg = 'bg-purple-950 text-purple-300 border-purple-800';
+                    } else if (i === step.iIdx) {
+                        barBg = 'bg-cyan-400 border-cyan-200 text-slate-900 font-bold';
+                        badgeBg = 'bg-cyan-950 text-cyan-300 border-cyan-800';
+                    } else if (i === step.jIdx) {
+                        barBg = 'bg-amber-400 border-amber-200 text-slate-900 font-bold';
+                        badgeBg = 'bg-amber-950 text-amber-300 border-amber-800';
+                    }
+                }
+
+                const barWrapper = document.createElement('div');
+                barWrapper.className = `flex-1 flex flex-col items-center h-full justify-end bar-transition ${extraEffect}`;
+                
+                barWrapper.innerHTML = `
+                    <div class="text-[11px] sm:text-xs font-bold mb-1 px-1.5 py-0.5 rounded border ${badgeBg} transition-colors">
+                        ${val}
+                    </div>
+                    <div class="w-full rounded-t-lg border-t border-x ${barBg} bar-transition flex items-end justify-center pb-2" style="height: ${heightPercent}%;">
+                        <span class="text-[10px] opacity-40 font-mono text-white select-none hidden sm:inline">[${i}]</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 font-mono mt-1">${i}</div>
+                `;
+                arrayContainer.appendChild(barWrapper);
+            });
+
+            // 2. 変数・ポインタモニターの更新
+            variableMonitor.innerHTML = '';
+            for (const [key, val] of Object.entries(step.vars)) {
+                const box = document.createElement('div');
+                box.className = 'bg-slate-900/80 border border-slate-700/60 rounded-lg p-2 flex justify-between items-center';
+                box.innerHTML = `<span class="text-slate-400">${key}:</span><span class="text-indigo-300 font-bold">${val}</span>`;
+                variableMonitor.appendChild(box);
+            }
+
+            // 3. カウンター・解説・バッジ更新
+            statComparisons.textContent = step.comparisons;
+            statSwaps.textContent = step.swaps;
+
+            explanationText.textContent = step.msg;
+            tipText.innerHTML = step.tip;
+            updateActionBadge(step.actionType);
+
+            // 4. 擬似コードハイライト
+            highlightCodeLine(step.codeLine);
+
+            // 5. ボタン状態
+            btnPrev.disabled = (index === 0);
+            btnNext.disabled = (index === history.length - 1);
+
+            // 6. 完了オーバーレイ
+            if (step.actionType === 'complete') {
+                stopAutoPlay();
+                completionSummary.textContent = `総比較回数: ${step.comparisons} 回 / 総交換(移動)回数: ${step.swaps} 回`;
+                setTimeout(() => {
+                    completionOverlay.classList.remove('opacity-0', 'pointer-events-none');
+                }, 300);
+            } else {
+                completionOverlay.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        function highlightCodeLine(lineNum) {
+            const lines = ALGO_CONFIG[currentAlgo].codeLines;
+            for (let i = 1; i <= lines.length; i++) {
+                const el = document.getElementById(`code-line-${i}`);
+                if (el) {
+                    if (i === lineNum) el.classList.add('code-line-active');
+                    else el.classList.remove('code-line-active');
+                }
+            }
+        }
+
+        function updateActionBadge(actionType) {
+            let label = '実行中';
+            let style = 'bg-slate-700 text-slate-300';
+
+            switch (actionType) {
+                case 'init': label = '初期状態'; style = 'bg-slate-700 text-slate-300'; break;
+                case 'pass-start': label = '周回開始'; style = 'bg-indigo-900 text-indigo-300 border border-indigo-700'; break;
+                case 'compare': label = '比較中'; style = 'bg-amber-900 text-amber-300 border border-amber-700'; break;
+                case 'swap': label = '交換実行'; style = 'bg-rose-900 text-rose-300 border border-rose-700'; break;
+                case 'shift': label = 'シフト移動'; style = 'bg-rose-900 text-rose-300 border border-rose-700'; break;
+                case 'insert': label = '挿入実行'; style = 'bg-teal-900 text-teal-300 border border-teal-700'; break;
+                case 'min-update': label = '最小更新'; style = 'bg-orange-900 text-orange-300 border border-orange-700'; break;
+                case 'fix': label = '位置確定'; style = 'bg-emerald-900 text-emerald-300 border border-emerald-700'; break;
+                case 'scan-i': label = 'i走査'; style = 'bg-cyan-900 text-cyan-300 border border-cyan-700'; break;
+                case 'scan-j': label = 'j走査'; style = 'bg-amber-900 text-amber-300 border border-amber-700'; break;
+                case 'complete': label = '完了'; style = 'bg-emerald-600 text-white font-bold'; break;
+            }
+            actionBadge.textContent = label;
+            actionBadge.className = `px-2 py-0.5 rounded-full text-[10px] font-bold ${style}`;
+        }
+
+        function addLogEntry(msg, type = 'normal') {
+            const entry = document.createElement('div');
+            let color = 'text-slate-300';
+            if (type === 'swap') color = 'text-rose-400 font-semibold';
+            if (type === 'fix' || type === 'complete') color = 'text-emerald-400 font-semibold';
+            if (type === 'info') color = 'text-indigo-300';
+
+            entry.className = `p-1 rounded bg-slate-900/80 border border-slate-800/80 ${color}`;
+            entry.textContent = `> ${msg}`;
+            
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // --- コントロール操作 ---
+        function stepForward() {
+            if (currentStepIndex < history.length - 1) {
+                currentStepIndex++;
+                const step = history[currentStepIndex];
+                renderStep(currentStepIndex);
+                
+                if (['swap', 'fix', 'pass-start', 'insert', 'complete'].includes(step.actionType)) {
+                    addLogEntry(step.msg, step.actionType);
+                }
+            } else {
+                stopAutoPlay();
+            }
+        }
+
+        function stepBackward() {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                renderStep(currentStepIndex);
+            }
+        }
+
+        function toggleAutoPlay() {
+            if (isPlaying) stopAutoPlay();
+            else startAutoPlay();
+        }
+
+        function startAutoPlay() {
+            if (currentStepIndex >= history.length - 1) {
+                currentStepIndex = 0;
+                renderStep(0);
+            }
+            isPlaying = true;
+            playIcon.className = 'fa-solid fa-pause mr-2';
+            playText.textContent = '一時停止';
+            btnPlay.classList.replace('bg-indigo-600', 'bg-amber-600');
+            btnPlay.classList.replace('hover:bg-indigo-500', 'hover:bg-amber-500');
+
+            timerId = setInterval(() => {
+                if (currentStepIndex < history.length - 1) {
+                    stepForward();
+                } else {
+                    stopAutoPlay();
+                }
+            }, speedMap[speed]);
+        }
+
+        function stopAutoPlay() {
+            isPlaying = false;
+            if (timerId) clearInterval(timerId);
+            timerId = null;
+            playIcon.className = 'fa-solid fa-play mr-2';
+            playText.textContent = '自動再生';
+            btnPlay.classList.replace('bg-amber-600', 'bg-indigo-600');
+            btnPlay.classList.replace('hover:bg-amber-500', 'hover:bg-indigo-500');
+        }
+
+        // --- イベントリスナーの準備 ---
+        btnApplyCustom.addEventListener('click', parseAndApplyCustomInput);
+        customInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') parseAndApplyCustomInput();
+        });
+
+        selectPreset.addEventListener('change', (e) => {
+            generatePresetArray(e.target.value);
+        });
+
+        btnGenerateRandom.addEventListener('click', () => {
+            selectPreset.value = 'random';
+            generatePresetArray('random');
+        });
+
+        btnNext.addEventListener('click', () => { stopAutoPlay(); stepForward(); });
+        btnPrev.addEventListener('click', () => { stopAutoPlay(); stepBackward(); });
+        btnResetStep.addEventListener('click', () => { stopAutoPlay(); currentStepIndex = 0; renderStep(0); });
+        btnPlay.addEventListener('click', toggleAutoPlay);
+        overlayResetBtn.addEventListener('click', () => { currentStepIndex = 0; renderStep(0); });
+
+        speedRange.addEventListener('input', (e) => {
+            speed = parseInt(e.target.value);
+            speedLabel.textContent = speedLabels[speed];
+            if (isPlaying) {
+                stopAutoPlay();
+                startAutoPlay();
+            }
+        });
+
+        btnClearLog.addEventListener('click', () => { logContainer.innerHTML = ''; });
+
+        window.addEventListener('resize', () => {
+            if (history.length > 0) renderStep(currentStepIndex);
+        });
+
+        // 初期化
+        window.onload = () => {
+            switchAlgorithm('bubble');
+        };
+    </script>
+</body>
+</html>
